@@ -23,13 +23,23 @@ class cached_property(_cached_property):
         value = obj.__dict__.get(self.__name__, _missing)
         if value is _missing:
             # One time warning that the user is using lazy loading
+            try:
+                name = self.func.__name__
+            except AttributeError:
+                # for python versions at least >= 3.9.6
+                name = self.fget.__name__
             warnings.warn(
                 "You are lazy loading attributes via '{}', and so are "
                 "making multiple calls to the API. This will impact your overall "
-                "rate limits."
-                .format(self.func.__name__),
+                "rate limits.".format(name),
                 UserWarning,
             )
-            value = self.func(obj)
+
+            try:
+                value = self.func(obj)
+            except AttributeError:
+                # for python versions at least >= 3.9.6
+                value = self.fget(obj)
+
             obj.__dict__[self.__name__] = value
         return value
